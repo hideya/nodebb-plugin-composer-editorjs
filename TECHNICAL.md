@@ -100,15 +100,18 @@ The plugin maintains data in two formats:
 
 **Challenge**: Editor.js and its tools must load before initialization.
 
-**Solution**: Dynamic script loading with Promise-based sequencing:
+**Solution**: Dynamic script loading with Promise-based sequencing and pinned versions:
 
 ```javascript
+// Version pinned on 2025-06-07 for stability (was using @latest)
 const scripts = [
-  'https://cdn.jsdelivr.net/npm/@editorjs/editorjs@latest/dist/editor.min.js',
-  'https://cdn.jsdelivr.net/npm/@editorjs/header@latest/dist/bundle.js',
-  'https://cdn.jsdelivr.net/npm/@editorjs/list@latest/dist/bundle.js'
+  'https://cdn.jsdelivr.net/npm/@editorjs/editorjs@2.30.8',
+  'https://cdn.jsdelivr.net/npm/@editorjs/header@2.8.8',
+  'https://cdn.jsdelivr.net/npm/@editorjs/list@2.0.8'
 ];
 ```
+
+**Version Strategy**: Specific versions are pinned to avoid breaking changes from `@latest`. Update manually after testing compatibility.
 
 **Fallback**: If CDN loading fails, gracefully fall back to default composer.
 
@@ -158,22 +161,27 @@ switch (block.type) {
 }
 ```
 
-### 4. CDN Reliability Issues
+### 4. CDN Reliability & Version Management
 
-**Problem**: CDN URLs can become outdated or unavailable.
+**Problem**: CDN URLs can become outdated or unavailable, and `@latest` versions can introduce breaking changes.
 
-**Current Solution**: Use `@latest` versions for automatic updates.
+**Current Solution**: Pin to specific stable versions (implemented 2025-06-07):
+- `@editorjs/editorjs@2.30.8`
+- `@editorjs/header@2.8.8`
+- `@editorjs/list@2.0.8`
 
-**Risk**: Breaking changes in new versions.
+**Benefits**: Predictable behavior, no surprise breaking changes, easier debugging.
 
-**Better Solution**: Pin to specific versions and update manually, or self-host the scripts.
+**Maintenance**: Check for updates periodically, test compatibility, and update versions manually.
 
 ## Potential Issues & Maintenance
 
 ### 1. Editor.js Version Compatibility
-- **Monitor**: Editor.js and tool plugin updates
+- **Current Versions** (pinned 2025-06-07): EditorJS 2.30.8, Header 2.8.8, List 2.0.8
+- **Monitor**: Editor.js and tool plugin updates on npm
 - **Test**: Block conversion after Editor.js updates
-- **Consider**: Self-hosting scripts for stability
+- **Update Process**: Manual version updates after compatibility testing
+- **Consider**: Self-hosting scripts for even greater stability
 
 ### 2. NodeBB Core Changes
 - **Watch**: Changes to composer architecture in NodeBB updates

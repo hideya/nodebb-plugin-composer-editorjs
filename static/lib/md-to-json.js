@@ -31,9 +31,11 @@ module.exports = function markdownToJson(markdownText) {
           type: 'list',
           data: {
             style: node.ordered ? 'ordered' : 'unordered',
-            items: node.children.map(li =>
-              li.children.map(p => p.children.map(c => c.value || '').join('')).join('')
-            )
+            items: node.children.map(li => ({
+              content: li.children.map(p => p.children.map(c => c.value || '').join('')).join(''),
+              meta: {},
+              items: [] // List 2.0 format - no nested items from markdown for now
+            }))
           }
         });
         break;

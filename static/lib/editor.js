@@ -10,14 +10,50 @@ function convertEditorJsToMarkdown(data) {
       case 'header':
         return `${'#'.repeat(data.level)} ${data.text}\n`;
       case 'list':
-        return data.items.map((item, i) => {
-          const bullet = data.style === 'ordered' ? `${i + 1}.` : '-';
-          return `${bullet} ${item}`;
-        }).join('\n') + '\n';
+        return convertListToMarkdown(data, 0);
       default:
         return `${data.text || ''}\n`;
     }
   }).join('\n');
+}
+
+// Helper function to convert List 2.0 format to markdown (client-side)
+function convertListToMarkdown(listData, depth = 0) {
+  if (!listData.items || !Array.isArray(listData.items)) return '';
+  
+  const indent = '  '.repeat(depth); // 2 spaces per nesting level
+  let result = '';
+  
+  listData.items.forEach((item, index) => {
+    let bullet;
+    
+    // Handle different list styles
+    if (listData.style === 'ordered') {
+      bullet = `${index + 1}.`;
+    } else if (listData.style === 'checklist') {
+      // Check if item is checked (meta.checked)
+      const isChecked = item.meta && item.meta.checked;
+      bullet = isChecked ? '- [x]' : '- [ ]';
+    } else {
+      // Default to unordered
+      bullet = '-';
+    }
+    
+    // Add the list item content
+    const content = item.content || '';
+    result += `${indent}${bullet} ${content}\n`;
+    
+    // Handle nested items (List 2.0 supports nesting)
+    if (item.items && Array.isArray(item.items) && item.items.length > 0) {
+      const nestedListData = {
+        style: listData.style,
+        items: item.items
+      };
+      result += convertListToMarkdown(nestedListData, depth + 1);
+    }
+  });
+  
+  return result;
 }
 
 // Load Editor.js scripts dynamically with better error handling
@@ -29,10 +65,11 @@ function loadEditorJSScripts() {
     }
 
     // Load Editor.js core and essential tools
+    // Version pinned on 2025-06-07 for stability (was using @latest)
     const scripts = [
-      'https://cdn.jsdelivr.net/npm/@editorjs/editorjs@2.26.5/dist/editor.min.js',
-      'https://cdn.jsdelivr.net/npm/@editorjs/header@latest/dist/bundle.js',
-      'https://cdn.jsdelivr.net/npm/@editorjs/list@latest/dist/bundle.js',
+      'https://cdn.jsdelivr.net/npm/@editorjs/editorjs@2.30.8',
+      'https://cdn.jsdelivr.net/npm/@editorjs/header@2.8.8',
+      'https://cdn.jsdelivr.net/npm/@editorjs/list@2.0.8',
     ];
 
     let loadedCount = 0;
@@ -45,7 +82,10 @@ function loadEditorJSScripts() {
         console.log(`Loaded script ${index + 1}/${scripts.length}: ${src}`);
         loadedCount++;
         if (loadedCount === scripts.length && !hasError) {
-          resolve();
+          // Add a small delay to ensure global variables are exposed
+          setTimeout(() => {
+            resolve();
+          }, 100);
         }
       };
       script.onerror = (error) => {
@@ -94,12 +134,28 @@ $(window).on('action:composer.loaded', async function() {
 
   try {
     // Initialize Editor.js with basic tools
+    // Check for global variables with fallback
+    const HeaderTool = window.Header;
+    const ListTool = window.EditorjsList || window.List; // List 2.0 uses EditorjsList
+
+    if (!HeaderTool) {
+      console.error('Header tool not available globally');
+      throw new Error('Header tool not loaded');
+    }
+
+    if (!ListTool) {
+      console.error('List tool not available globally');
+      throw new Error('List tool not loaded');
+    }
+
+    console.log('Tools available:', { HeaderTool, ListTool });
+
     const editor = new EditorJS({
       holder: 'editorjs',
       placeholder: 'Let\'s write an awesome story!',
       tools: {
-        header: Header,
-        list: List
+        header: HeaderTool,
+        list: ListTool
       },
       onChange: async () => {
         try {
