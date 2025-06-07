@@ -1,0 +1,33 @@
+{
+  "name": "nodebb-plugin-composer-editorjs",
+  "version": "0.0.1",
+  "description": "A NodeBB composer plugin using Editor.js",
+  "main": "index.js",
+  "scripts": {
+    "lint": "eslint .",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "test-pack": "npm pack --dry-run",
+    "test-publish": "npm publish --access=public --dry-run",
+    "do-publish": "npm publish --access public"
+  },
+  "keywords": [
+    "nodebb",
+    "plugin",
+    "composer",
+    "editorjs",
+    "markdown"
+  ],
+  "author": "hideya kawahara",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14",
+    "npm": ">=6"
+  },
+  "dependencies": {
+    "remark-parse": "^10.0.1",
+    "unified": "^10.1.2"
+  },
+  "nbbpm": {
+    "compatibility": "^3.0.0"
+  }
+}
