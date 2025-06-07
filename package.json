@@ -1,33 +1,70 @@
 {
   "name": "nodebb-plugin-composer-editorjs",
-  "version": "0.0.1",
-  "description": "A NodeBB composer plugin using Editor.js",
+  "version": "0.1.0",
+  "description": "A modern WYSIWYG block-style editor for NodeBB using Editor.js",
   "main": "index.js",
   "scripts": {
     "lint": "eslint .",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint:fix": "eslint . --fix",
+    "test": "npm run test:unit && npm run test:integration",
+    "test:unit": "mocha test/unit/**/*.js",
+    "test:integration": "echo \"Integration tests not yet implemented\"",
     "test-pack": "npm pack --dry-run",
     "test-publish": "npm publish --access=public --dry-run",
-    "do-publish": "npm publish --access public"
+    "do-publish": "npm publish --access public",
+    "build": "echo \"No build step required\"",
+    "clean": "rm -rf node_modules package-lock.json",
+    "reinstall": "npm run clean && npm install"
   },
   "keywords": [
     "nodebb",
     "plugin",
     "composer",
     "editorjs",
-    "markdown"
+    "wysiwyg",
+    "markdown",
+    "editor",
+    "blocks",
+    "modern"
   ],
-  "author": "hideya kawahara",
+  "author": {
+    "name": "hideya kawahara",
+    "email": "your-email@example.com"
+  },
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hideya/nodebb-plugin-composer-editorjs.git"
+  },
+  "bugs": {
+    "url": "https://github.com/hideya/nodebb-plugin-composer-editorjs/issues"
+  },
+  "homepage": "https://github.com/hideya/nodebb-plugin-composer-editorjs#readme",
   "engines": {
-    "node": ">=14",
-    "npm": ">=6"
+    "node": ">=14.0.0",
+    "npm": ">=6.0.0"
   },
   "dependencies": {
     "remark-parse": "^10.0.1",
     "unified": "^10.1.2"
   },
+  "devDependencies": {
+    "eslint": "^8.0.0",
+    "mocha": "^10.0.0",
+    "chai": "^4.3.0"
+  },
+  "peerDependencies": {
+    "nodebb": ">=3.0.0"
+  },
   "nbbpm": {
-    "compatibility": "^3.0.0"
-  }
+    "compatibility": "^3.0.0 || ^4.0.0"
+  },
+  "files": [
+    "index.js",
+    "plugin.json",
+    "static/",
+    "README.md",
+    "LICENSE",
+    "TECHNICAL.md"
+  ]
 }

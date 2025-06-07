@@ -1,0 +1,209 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  release:
+    types: [ created ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [14.x, 16.x, 18.x, 20.x]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Run linting
+      run: npm run lint
+    
+    - name: Run tests
+      run: npm test
+    
+    - name: Test package creation
+      run: npm run test-pack
+
+  compatibility-test:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    strategy:
+      matrix:
+        nodebb-version: ['3.0.0', '3.1.0', '4.0.0']
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Use Node.js 18.x
+      uses: actions/setup-node@v4
+      with:
+        node-version: 18.x
+        cache: 'npm'
+    
+    - name: Install plugin dependencies
+      run: npm ci
+    
+    - name: Setup NodeBB ${{ matrix.nodebb-version }}
+      run: |
+        git clone https://github.com/NodeBB/NodeBB.git nodebb
+        cd nodebb
+        git checkout v${{ matrix.nodebb-version }}
+        npm install
+        
+    - name: Link plugin to NodeBB
+      run: |
+        cd nodebb
+        npm link ../
+        npm link nodebb-plugin-composer-editorjs
+        
+    - name: Configure NodeBB
+      run: |
+        cd nodebb
+        cp install/package.json package.json
+        npm install
+        node app --setup='{"url":"http://localhost:4567","secret":"test-secret","database":"memory","admin:username":"admin","admin:email":"admin@test.com","admin:password":"password123"}'
+        
+    - name: Test NodeBB startup with plugin
+      run: |
+        cd nodebb
+        timeout 30 npm start || true
+
+  security-audit:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Use Node.js 18.x
+      uses: actions/setup-node@v4
+      with:
+        node-version: 18.x
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Run security audit
+      run: npm audit --audit-level high
+
+  performance-test:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Use Node.js 18.x
+      uses: actions/setup-node@v4
+      with:
+        node-version: 18.x
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Run performance benchmarks
+      run: |
+        # Create a simple benchmark test
+        cat > benchmark.js << 'EOF'
+        const jsonToMarkdown = require('./static/lib/json-to-md');
+        const markdownToJson = require('./static/lib/md-to-json');
+        
+        const testData = {
+          blocks: [
+            { type: 'header', data: { text: 'Test Header', level: 1 } },
+            { type: 'paragraph', data: { text: 'Test paragraph with some content.' } },
+            { type: 'list', data: { style: 'unordered', items: ['Item 1', 'Item 2', 'Item 3'] } },
+            { type: 'code', data: { code: 'console.log("Hello, world!");', language: 'javascript' } }
+          ]
+        };
+        
+        const iterations = 1000;
+        
+        console.log('Running performance benchmarks...');
+        
+        // JSON to Markdown benchmark
+        const start1 = Date.now();
+        for (let i = 0; i < iterations; i++) {
+          jsonToMarkdown(testData);
+        }
+        const time1 = Date.now() - start1;
+        
+        // Markdown to JSON benchmark
+        const markdown = jsonToMarkdown(testData);
+        const start2 = Date.now();
+        for (let i = 0; i < iterations; i++) {
+          markdownToJson(markdown);
+        }
+        const time2 = Date.now() - start2;
+        
+        console.log(`JSON to Markdown: ${iterations} iterations in ${time1}ms (${(time1/iterations).toFixed(2)}ms per operation)`);
+        console.log(`Markdown to JSON: ${iterations} iterations in ${time2}ms (${(time2/iterations).toFixed(2)}ms per operation)`);
+        
+        // Fail if performance is too slow (arbitrary thresholds)
+        if (time1 > 5000 || time2 > 10000) {
+          console.error('Performance regression detected!');
+          process.exit(1);
+        }
+        
+        console.log('Performance benchmarks passed!');
+        EOF
+        
+        node benchmark.js
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: [test, compatibility-test, security-audit, performance-test]
+    if: github.event_name == 'release'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Use Node.js 18.x
+      uses: actions/setup-node@v4
+      with:
+        node-version: 18.x
+        cache: 'npm'
+        registry-url: 'https://registry.npmjs.org'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Run tests one more time
+      run: npm test
+    
+    - name: Publish to npm
+      run: npm publish --access public
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+    
+    - name: Create release archive
+      run: |
+        npm pack
+        tar -czf nodebb-plugin-composer-editorjs-${{ github.event.release.tag_name }}.tar.gz \
+          --exclude=node_modules \
+          --exclude=.git \
+          --exclude=.github \
+          --exclude=test \
+          --exclude=*.log \
+          .

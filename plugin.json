@@ -2,16 +2,25 @@
   "library": "./index.js",
   "hooks": [
     { "hook": "filter:composer.format", "method": "format" },
-    { "hook": "filter:composer.get", "method": "get" }
+    { "hook": "filter:composer.get", "method": "get" },
+    { "hook": "static:app.load", "method": "init" },
+    { "hook": "filter:admin.header.build", "method": "addAdminNavigation" },
+    { "hook": "filter:scripts.get", "method": "addScripts" },
+    { "hook": "filter:config.get", "method": "addConfig" },
+    { "hook": "static:app.load", "method": "addRoutes" },
+    { "hook": "action:plugin.deactivate", "method": "onDeactivate" }
   ],
   "staticDirs": {
     "static": "./static"
   },
-  "scripts": [
-    "./static/lib/editor.js"
-  ],
+  "scripts": [],
   "css": [
     "./static/lib/editor.css"
   ],
-  "templates": "./static/templates"
+  "templates": "./static/templates",
+  "acpScripts": [],
+  "languages": "languages",
+  "defaultLang": "en-GB",
+  "minver": "3.0.0",
+  "compatibility": "^3.0.0 || ^4.0.0"
 }

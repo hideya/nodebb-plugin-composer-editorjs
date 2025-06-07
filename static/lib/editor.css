@@ -1,6 +1,8 @@
+/* NodeBB Editor.js Plugin Styles */
 
+/* Composer container enhancements */
 [component="composer"] {
-  padding: 24px !important;
+  padding: 16px !important;
 }
 
 /* Hide markdown formatting toolbar when Editor.js is active */
@@ -9,31 +11,446 @@
 }
 
 [component="composer"] .write-preview-container {
-  background-color: white;
+  background-color: #ffffff;
+  border-radius: 8px;
 }
 
 /* Editor.js Container Styling */
+#editorjs-container {
+  width: 100% !important;
+  max-width: 100% !important;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  overflow: hidden;
+  position: relative;
+}
+
 #editorjs {
   width: 100% !important;
   max-width: 100% !important;
-  /* box-sizing: border-box !important; */
+  min-height: 200px;
+  padding: 16px;
+  box-sizing: border-box !important;
 }
 
-/* #editorjs .ce-toolbar {
-  left: 200px !important;
-  right: auto !important;
-} */
+/* Loading state */
+#editorjs-container.loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
 
-/* #editorjs .ce-toolbar__plus {
-  left: 200px !important;
-  right: auto !important;
-} */
+#editorjs-container.loading::before {
+  content: 'Loading Editor...';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #6b7280;
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 10;
+}
 
+/* Error state */
+#editorjs-container.error {
+  border-color: #ef4444;
+  background: #fef2f2;
+}
+
+#editorjs-container.error::before {
+  content: 'Editor failed to load. Using fallback...';
+  display: block;
+  padding: 16px;
+  color: #dc2626;
+  font-size: 14px;
+  text-align: center;
+  background: #fef2f2;
+  border-radius: 6px;
+  margin: 16px;
+}
+
+/* Editor.js toolbar positioning improvements */
+#editorjs .ce-toolbar {
+  left: 50px !important;
+  right: auto !important;
+}
+
+#editorjs .ce-toolbar__plus {
+  left: 16px !important;
+  right: auto !important;
+}
+
+/* Block styling enhancements */
+#editorjs .ce-block__content,
+#editorjs .ce-block {
+  max-width: 100% !important;
+  margin: 0 auto;
+}
+
+#editorjs .ce-paragraph {
+  line-height: 1.6;
+  font-size: 16px;
+}
+
+#editorjs .ce-header {
+  font-weight: 600;
+  margin: 16px 0 8px 0;
+}
+
+/* Code block styling */
+#editorjs .ce-code__textarea {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 6px !important;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace !important;
+  font-size: 14px !important;
+  line-height: 1.4 !important;
+  padding: 12px !important;
+}
+
+/* Quote styling */
+#editorjs .cdx-quote {
+  border-left: 4px solid #3b82f6 !important;
+  margin: 16px 0 !important;
+  padding: 12px 16px !important;
+  background: #f8fafc !important;
+  border-radius: 0 6px 6px 0 !important;
+}
+
+/* List styling */
+#editorjs .cdx-list {
+  margin: 8px 0;
+}
+
+#editorjs .cdx-list__item {
+  line-height: 1.6;
+  margin: 4px 0;
+}
+
+/* Delimiter styling */
+#editorjs .ce-delimiter {
+  margin: 24px 0 !important;
+}
+
+/* Table styling */
+#editorjs .tc-table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 16px 0;
+}
+
+#editorjs .tc-cell {
+  border: 1px solid #e2e8f0;
+  padding: 8px 12px;
+  min-width: 100px;
+}
 
 /* Mobile responsive adjustments */
 @media (max-width: 768px) {
-  /* #editorjs {
-    padding: 0.5em !important;
-    font-size: 16px !important;
-  } */
+  [component="composer"] {
+    padding: 8px !important;
+  }
+
+  #editorjs {
+    padding: 12px !important;
+    min-height: 150px;
+  }
+
+  #editorjs .ce-toolbar {
+    left: 40px !important;
+  }
+
+  #editorjs .ce-toolbar__plus {
+    left: 12px !important;
+  }
+
+  #editorjs .ce-paragraph {
+    font-size: 16px !important; /* Prevent zoom on iOS */
+  }
+
+  #editorjs .ce-header {
+    margin: 12px 0 6px 0;
+  }
+
+  /* Better mobile toolbar positioning */
+  #editorjs .ce-toolbar__actions {
+    right: 12px !important;
+  }
+
+  /* Mobile optimizations class */
+  #editorjs-container.mobile-optimized .ce-toolbar {
+    left: 35px !important;
+  }
+
+  #editorjs-container.mobile-optimized .ce-toolbar__plus {
+    left: 8px !important;
+  }
+}
+
+/* Small screen optimizations */
+@media (max-width: 480px) {
+  #editorjs-container {
+    margin-bottom: 12px;
+  }
+
+  #editorjs {
+    padding: 8px !important;
+  }
+
+  #editorjs .ce-toolbar {
+    left: 32px !important;
+  }
+
+  #editorjs .ce-toolbar__plus {
+    left: 8px !important;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  #editorjs-container {
+    background: #1a202c;
+    border-color: #4a5568;
+  }
+
+  #editorjs {
+    background: #1a202c;
+    color: #e2e8f0;
+  }
+
+  #editorjs .ce-code__textarea {
+    background: #2d3748 !important;
+    border-color: #4a5568 !important;
+    color: #e2e8f0 !important;
+  }
+
+  #editorjs .cdx-quote {
+    background: #2d3748 !important;
+    color: #e2e8f0 !important;
+  }
+
+  #editorjs .tc-cell {
+    border-color: #4a5568;
+    background: #2d3748;
+    color: #e2e8f0;
+  }
+
+  #editorjs-container.error {
+    background: #2d1b1f;
+    border-color: #e53e3e;
+  }
+
+  #editorjs-container.error::before {
+    background: #2d1b1f;
+    color: #fed7d7;
+  }
+}
+
+/* Focus states and accessibility */
+#editorjs .ce-block--focused .ce-block__content {
+  background: rgba(59, 130, 246, 0.05);
+  border-radius: 4px;
+}
+
+#editorjs .ce-toolbar__plus:hover,
+#editorjs .ce-toolbar__settings-btn:hover {
+  background: rgba(59, 130, 246, 0.1) !important;
+}
+
+/* Animation for smooth transitions */
+#editorjs-container {
+  transition: all 0.2s ease-in-out;
+}
+
+#editorjs .ce-block {
+  transition: background-color 0.15s ease;
+}
+
+/* Ensure proper stacking context */
+#editorjs .ce-toolbar,
+#editorjs .ce-conversion-toolbar,
+#editorjs .ce-settings {
+  z-index: 1000 !important;
+}
+
+/* Hide original textarea completely when editor is active */
+[component="composer"] textarea[data-action="composer.write"] {
+  display: none !important;
+}
+
+/* Touch gesture feedback */
+.touch-gesture-feedback {
+  position: absolute;
+  background: rgba(59, 130, 246, 0.1);
+  border: 2px solid #3b82f6;
+  border-radius: 4px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.touch-gesture-feedback.active {
+  opacity: 1;
+}
+
+/* Plugin status indicators */
+.plugin-status {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+.plugin-status.active {
+  background-color: #10b981;
+}
+
+.plugin-status.inactive {
+  background-color: #ef4444;
+}
+
+.plugin-status.loading {
+  background-color: #f59e0b;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Admin Panel Styles */
+.editorjs-settings .panel {
+  margin-bottom: 20px;
+}
+
+.editorjs-settings .form-group {
+  margin-bottom: 15px;
+}
+
+.editorjs-settings .help-block {
+  margin-top: 5px;
+  font-size: 12px;
+  color: #666;
+}
+
+.editorjs-settings .checkbox {
+  margin-top: 5px;
+  margin-bottom: 5px;
+}
+
+.editorjs-settings .checkbox label {
+  font-weight: normal;
+  cursor: pointer;
+}
+
+.editorjs-settings .label {
+  font-size: 10px;
+  padding: 2px 6px;
+}
+
+/* Admin panel responsive adjustments */
+@media (max-width: 991px) {
+  .editorjs-settings .col-lg-3 {
+    margin-top: 20px;
+  }
+}
+
+/* Performance indicator styles */
+.performance-metrics {
+  background: #f8f9fa;
+  padding: 10px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 12px;
+  margin-top: 10px;
+}
+
+.performance-metrics .metric {
+  display: inline-block;
+  margin-right: 15px;
+}
+
+.performance-metrics .metric.good {
+  color: #28a745;
+}
+
+.performance-metrics .metric.warning {
+  color: #ffc107;
+}
+
+.performance-metrics .metric.error {
+  color: #dc3545;
+}
+
+/* Custom scrollbar for code blocks */
+#editorjs .ce-code__textarea::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+#editorjs .ce-code__textarea::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+#editorjs .ce-code__textarea::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+#editorjs .ce-code__textarea::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
+
+/* Improved accessibility */
+#editorjs .ce-block:focus-within {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  #editorjs-container {
+    border: 2px solid #000;
+  }
+  
+  #editorjs .ce-toolbar__plus,
+  #editorjs .ce-toolbar__settings-btn {
+    border: 1px solid #000;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  #editorjs-container,
+  #editorjs .ce-block,
+  .touch-gesture-feedback {
+    transition: none;
+  }
+  
+  .plugin-status.loading {
+    animation: none;
+  }
+}
+
+/* Print styles */
+@media print {
+  #editorjs-container {
+    border: none;
+    box-shadow: none;
+  }
+  
+  #editorjs .ce-toolbar,
+  #editorjs .ce-toolbar__plus,
+  #editorjs .ce-toolbar__settings-btn {
+    display: none !important;
+  }
 }
