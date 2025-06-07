@@ -1,0 +1,39 @@
+
+[component="composer"] {
+  padding: 24px !important;
+}
+
+/* Hide markdown formatting toolbar when Editor.js is active */
+[component="composer"] .formatting-bar {
+  display: none !important;
+}
+
+[component="composer"] .write-preview-container {
+  background-color: white;
+}
+
+/* Editor.js Container Styling */
+#editorjs {
+  width: 100% !important;
+  max-width: 100% !important;
+  /* box-sizing: border-box !important; */
+}
+
+/* #editorjs .ce-toolbar {
+  left: 200px !important;
+  right: auto !important;
+} */
+
+/* #editorjs .ce-toolbar__plus {
+  left: 200px !important;
+  right: auto !important;
+} */
+
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  /* #editorjs {
+    padding: 0.5em !important;
+    font-size: 16px !important;
+  } */
+}
