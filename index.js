@@ -217,6 +217,11 @@ plugin.addAdminNavigation = async (header) => {
 plugin.addScripts = async (data) => {
   const settings = await loadSettings();
   
+  // Ensure data.scripts exists
+  if (!data.scripts) {
+    data.scripts = [];
+  }
+  
   // Only add scripts if plugin is enabled
   if (settings.enabled) {
     data.scripts.push({

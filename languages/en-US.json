@@ -1,0 +1,21 @@
+{
+  "editorjs-composer": "Editor.js Composer",
+  "editorjs-composer-description": "Modern WYSIWYG block-style editor for NodeBB",
+  "editorjs-settings": "Editor.js Settings",
+  "editorjs-enabled": "Enable Editor.js",
+  "editorjs-placeholder": "Placeholder Text",
+  "editorjs-debug-mode": "Debug Mode",
+  "editorjs-tools": "Block Tools",
+  "editorjs-performance": "Performance & Loading",
+  "editorjs-mobile": "Mobile & Responsive",
+  "editorjs-save-settings": "Save Settings",
+  "editorjs-reset-settings": "Reset to Defaults",
+  "editorjs-plugin-info": "Plugin Information",
+  "editorjs-requirements": "Requirements",
+  "editorjs-quick-actions": "Quick Actions",
+  "editorjs-test-editor": "Test Editor",
+  "editorjs-clear-cache": "Clear Cache",
+  "editorjs-loading": "Loading Editor...",
+  "editorjs-error": "Editor failed to load. Using fallback...",
+  "editorjs-placeholder-default": "Let's write an awesome story!"
+}

@@ -20,7 +20,7 @@
   "templates": "./static/templates",
   "acpScripts": [],
   "languages": "languages",
-  "defaultLang": "en-GB",
+  "defaultLang": "en-US",
   "minver": "3.0.0",
   "compatibility": "^3.0.0 || ^4.0.0"
 }

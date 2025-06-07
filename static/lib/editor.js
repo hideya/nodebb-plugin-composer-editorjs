@@ -10,13 +10,17 @@
     CDN_BASE: PLUGIN_CONFIG.cdnBase || 'https://cdn.jsdelivr.net/npm',
     EDITOR_VERSION: '2.28.2',
     TIMEOUT: PLUGIN_CONFIG.loadTimeout || 10000,
-    DEBUG: PLUGIN_CONFIG.debugMode || false,
+    DEBUG: PLUGIN_CONFIG.debugMode !== false, // Enable debug by default for troubleshooting
     ENABLED: PLUGIN_CONFIG.enabled !== false,
     PLACEHOLDER: PLUGIN_CONFIG.placeholder || "Let's write an awesome story!",
     LAZY_LOAD: PLUGIN_CONFIG.lazyLoad || false,
     MOBILE_OPTIMIZED: PLUGIN_CONFIG.mobileOptimized !== false,
     TOUCH_GESTURES: PLUGIN_CONFIG.touchGestures !== false
   };
+
+  // Always log initial state for debugging
+  console.log('[Editor.js Plugin] Configuration:', EDITOR_CONFIG);
+  console.log('[Editor.js Plugin] Plugin config from NodeBB:', PLUGIN_CONFIG);
 
   // Exit early if plugin is disabled
   if (!EDITOR_CONFIG.ENABLED) {
@@ -568,6 +572,7 @@
   // Initialize when composer is loaded
   $(window).on('action:composer.loaded', function() {
     debug('Composer loaded event received');
+    console.log('[Editor.js Plugin] Composer loaded event triggered'); // Always log this
     
     // Small delay to ensure DOM is ready
     setTimeout(initializeEditor, 100);
@@ -575,9 +580,14 @@
 
   // Also try to initialize if composer is already present
   $(document).ready(function() {
+    console.log('[Editor.js Plugin] Document ready, checking for existing composer');
+    
     if ($('[component="composer"]').length && !EDITOR_CONFIG.LAZY_LOAD) {
       debug('Composer already present, initializing');
+      console.log('[Editor.js Plugin] Composer already present, initializing');
       setTimeout(initializeEditor, 100);
+    } else {
+      console.log('[Editor.js Plugin] No composer found or lazy loading enabled');
     }
   });
 

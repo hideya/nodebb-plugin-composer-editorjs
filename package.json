@@ -53,9 +53,6 @@
     "mocha": "^10.0.0",
     "chai": "^4.3.0"
   },
-  "peerDependencies": {
-    "nodebb": ">=3.0.0"
-  },
   "nbbpm": {
     "compatibility": "^3.0.0 || ^4.0.0"
   },
