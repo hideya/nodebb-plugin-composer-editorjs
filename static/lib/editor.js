@@ -1,3 +1,62 @@
+// Universal Editor.js Plugin - Updated 2025-06-08-20:00
+// Load Editor.js scripts and markdown parsing libraries dynamically
+function loadEditorJSScripts() {
+  return new Promise((resolve, reject) => {
+    // Debug: check what's already loaded
+    console.log('Script loading check:', {
+      EditorJS: typeof EditorJS !== 'undefined',
+      markdownToEditorJs: typeof markdownToEditorJs !== 'undefined'
+    });
+    
+    // Only skip if ALL scripts are already loaded
+    if (typeof EditorJS !== 'undefined' && typeof markdownToEditorJs !== 'undefined') {
+      console.log('All scripts already loaded, skipping...');
+      resolve();
+      return;
+    }
+
+    // Load Editor.js core, tools, and markdown parsing libraries
+    // Version pinned on 2025-06-07 for stability (was using @latest)
+    const scripts = [
+      // Editor.js and tools
+      'https://cdn.jsdelivr.net/npm/@editorjs/editorjs@2.30.8',
+      'https://cdn.jsdelivr.net/npm/@editorjs/header@2.8.8',
+      'https://cdn.jsdelivr.net/npm/@editorjs/list@2.0.8',
+      
+      // Markdown parsing libraries
+      'https://cdn.jsdelivr.net/npm/unified@10.1.2/index.min.js',
+      'https://cdn.jsdelivr.net/npm/remark-parse@10.0.2/index.min.js',
+      
+      // Our universal converter (load last)
+      '/plugins/nodebb-plugin-composer-editorjs/static/lib/universal-md-converter.js'
+    ];
+
+    let loadedCount = 0;
+    let hasError = false;
+    
+    scripts.forEach((src, index) => {
+      const script = document.createElement('script');
+      script.src = src;
+      script.onload = () => {
+        console.log(`Loaded script ${index + 1}/${scripts.length}: ${src}`);
+        loadedCount++;
+        if (loadedCount === scripts.length && !hasError) {
+          // Add a small delay to ensure global variables are exposed
+          setTimeout(() => {
+            resolve();
+          }, 100);
+        }
+      };
+      script.onerror = (error) => {
+        hasError = true;
+        console.error(`Failed to load script: ${src}`, error);
+        reject(new Error(`Failed to load: ${src}`));
+      };
+      document.head.appendChild(script);
+    });
+  });
+}
+
 // Convert Editor.js data to markdown
 function convertEditorJsToMarkdown(data) {
   if (!data || !Array.isArray(data.blocks)) return '';
@@ -84,13 +143,6 @@ function patchToolbarPositioning() {
           // Position toolbar at about -10px from where the text actually starts
           const toolbarRightMargin = 10;  // FIXME: hardcoded value
           leftPosition = `${offsetToBlockContent - toolbarRightMargin}px`;
-          
-          // console.log('Calculated toolbar position:', {
-          //   editorLeft: editorRect.left,
-          //   blockContentLeft: blockContentRect.left,
-          //   offsetToBlockContent: offsetToBlockContent,
-          //   finalPosition: leftPosition
-          // });
         } else {
           // Fallback to standard Editor.js position
           leftPosition = '0px';
@@ -101,7 +153,6 @@ function patchToolbarPositioning() {
       toolbar.style.left = leftPosition;
       toolbar.style.right = 'auto';
       toolbar.style.transform = 'none';
-      // console.log(`Toolbar positioned to left: ${leftPosition}`);
     }
     
     // Also fix any toolbox popups with same logic
@@ -110,7 +161,6 @@ function patchToolbarPositioning() {
       // Use same position as toolbar
       popover.style.left = toolbar.style.left;
       popover.style.right = 'auto';
-      // console.log(`Popover positioned to left: ${toolbar.style.left}`);
     }
   }
   
@@ -167,49 +217,8 @@ function patchToolbarPositioning() {
   });
 }
 
-// Load Editor.js scripts dynamically with better error handling
-function loadEditorJSScripts() {
-  return new Promise((resolve, reject) => {
-    if (typeof EditorJS !== 'undefined') {
-      resolve();
-      return;
-    }
-
-    // Load Editor.js core and essential tools
-    // Version pinned on 2025-06-07 for stability (was using @latest)
-    const scripts = [
-      'https://cdn.jsdelivr.net/npm/@editorjs/editorjs@2.30.8',
-      'https://cdn.jsdelivr.net/npm/@editorjs/header@2.8.8',
-      'https://cdn.jsdelivr.net/npm/@editorjs/list@2.0.8',
-    ];
-
-    let loadedCount = 0;
-    let hasError = false;
-    
-    scripts.forEach((src, index) => {
-      const script = document.createElement('script');
-      script.src = src;
-      script.onload = () => {
-        console.log(`Loaded script ${index + 1}/${scripts.length}: ${src}`);
-        loadedCount++;
-        if (loadedCount === scripts.length && !hasError) {
-          // Add a small delay to ensure global variables are exposed
-          setTimeout(() => {
-            resolve();
-          }, 100);
-        }
-      };
-      script.onerror = (error) => {
-        hasError = true;
-        console.error(`Failed to load script: ${src}`, error);
-        reject(new Error(`Failed to load: ${src}`));
-      };
-      document.head.appendChild(script);
-    });
-  });
-}
-
 $(window).on('action:composer.loaded', async function() {
+  console.log('*** NEW VERSION LOADED - UNIVERSAL CONVERTER SUPPORT ***');
   console.log('Editor.js plugin: Composer loaded event triggered');
   
   try {
@@ -233,12 +242,7 @@ $(window).on('action:composer.loaded', async function() {
 
   // Create Editor.js container with full width and responsive design
   const editorContainer = $('<div id="editorjs"></div>');
-  // textarea.after(editorContainer);
   textarea.before(editorContainer);  // Put Editor.js above textarea
-  // textarea.parent().append(editorContainer);  // Put at end of composer
-  // const wrapper = $('<div class="editor-wrapper"></div>');
-  // textarea.after(wrapper);
-  // wrapper.append(editorContainer);
 
   // Don't hide textarea yet - wait for Editor.js to initialize
   console.log('Editor.js container created');
@@ -262,18 +266,11 @@ $(window).on('action:composer.loaded', async function() {
     console.log('Tools available:', { HeaderTool, ListTool });
     
     const editor = new EditorJS({
-    holder: 'editorjs',
-    placeholder: 'Let\'s write an awesome story!',
-    tools: {
-    header: HeaderTool,
-    list: ListTool
-    },
-      onReady: () => {
-        console.log('Editor.js is ready - hiding textarea and patching toolbar positioning');
-        textarea.hide();
-        
-        // Patch Editor.js toolbar positioning
-        patchToolbarPositioning();
+      holder: 'editorjs',
+      placeholder: 'Let\'s write an awesome story!',
+      tools: {
+        header: HeaderTool,
+        list: ListTool
       },
       onChange: async () => {
         try {
@@ -302,18 +299,47 @@ $(window).on('action:composer.loaded', async function() {
         
         // Patch Editor.js toolbar positioning
         patchToolbarPositioning();
-      },
-    });
+        
+        // Load existing content if available
+        const existingData = $('input[name="editorjsData"]').val();
+        const textareaContent = textarea.val();
 
-    // Load existing content if available
-    const existingData = $('input[name="editorjsData"]').val();
-    if (existingData) {
-      try {
-        editor.render(JSON.parse(existingData));
-      } catch (error) {
-        console.error('Editor.js render error:', error);
+        if (existingData) {
+          // Editing a post that was created with Editor.js
+          try {
+            editor.render(JSON.parse(existingData));
+            console.log('Loaded existing Editor.js data');
+          } catch (error) {
+            console.error('Editor.js render error:', error);
+          }
+        } else if (textareaContent && textareaContent.trim()) {
+          // Editing a post with markdown content - convert to Editor.js format
+          console.log('Converting existing markdown to Editor.js format:', textareaContent);
+          
+          try {
+            // Use the universal markdown converter
+            if (typeof markdownToEditorJs === 'function') {
+              const editorjsData = markdownToEditorJs(textareaContent);
+              editor.render(editorjsData);
+              console.log('Converted and loaded markdown content:', editorjsData);
+            } else {
+              throw new Error('markdownToEditorJs function not available');
+            }
+          } catch (error) {
+            console.error('Failed to convert markdown to Editor.js:', error);
+            // Fallback: create a simple paragraph block with the content
+            editor.render({
+              time: Date.now(),
+              blocks: [{
+                type: 'paragraph',
+                data: { text: textareaContent }
+              }],
+              version: '2.29.0'
+            });
+          }
+        }
       }
-    }
+    });
 
     // Ensure content is converted on form submission
     const form = textarea.closest('form');

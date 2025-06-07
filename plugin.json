@@ -8,7 +8,8 @@
     "static": "./static"
   },
   "scripts": [
-    "./static/lib/editor.js"
+    "./static/lib/editor.js",
+    "./static/lib/universal-md-converter.js"
   ],
   "css": [
     "./static/lib/editor.css"

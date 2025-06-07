@@ -2,6 +2,14 @@
 
 A NodeBB plugin that replaces the default markdown composer with a modern WYSIWYG block-style editor powered by [Editor.js](https://editorjs.io/).
 
+## Key Architecture Points
+
+- **Hybrid Integration Strategy**: The plugin works alongside the default composer plugin rather than replacing it completely, ensuring compatibility with NodeBB's core systems
+- **Dual-Format Data Management**:
+   - Editor.js JSON format for the rich editing experience
+   - Markdown format for NodeBB storage and validation
+- **Client-Server Conversion**: Bidirectional conversion between Editor.js JSON and Markdown on both client and server sides
+
 ## Features
 
 - **Block-style editing**: Modern WYSIWYG editor with block-based content structure
