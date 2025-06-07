@@ -56,6 +56,117 @@ function convertListToMarkdown(listData, depth = 0) {
   return result;
 }
 
+// Patch Editor.js toolbar positioning
+function patchToolbarPositioning() {
+  console.log('Patching Editor.js toolbar positioning...');
+  
+  // Function to force toolbar to left side
+  function forceToolbarLeft() {
+    const toolbar = document.querySelector('#editorjs .ce-toolbar');
+    if (toolbar) {
+      let leftPosition;
+      
+      // Check if mobile view
+      if (window.innerWidth <= 768) {  // FIXME: hardcoded value
+        leftPosition = '0px';
+      } else {
+        // Calculate position relative to ce-block__content
+        const blockContent = document.querySelector('#editorjs .ce-block__content');
+        
+        if (blockContent) {
+          const blockContentRect = blockContent.getBoundingClientRect();
+          const editorContainer = document.getElementById('editorjs');
+          const editorRect = editorContainer.getBoundingClientRect();
+          
+          // Calculate offset from editor container to block content left edge
+          const offsetToBlockContent = blockContentRect.left - editorRect.left;
+          
+          // Position toolbar at about -10px from where the text actually starts
+          const toolbarRightMargin = 10;  // FIXME: hardcoded value
+          leftPosition = `${offsetToBlockContent - toolbarRightMargin}px`;
+          
+          // console.log('Calculated toolbar position:', {
+          //   editorLeft: editorRect.left,
+          //   blockContentLeft: blockContentRect.left,
+          //   offsetToBlockContent: offsetToBlockContent,
+          //   finalPosition: leftPosition
+          // });
+        } else {
+          // Fallback to standard Editor.js position
+          leftPosition = '0px';
+        }
+      }
+      
+      // Apply the calculated position
+      toolbar.style.left = leftPosition;
+      toolbar.style.right = 'auto';
+      toolbar.style.transform = 'none';
+      // console.log(`Toolbar positioned to left: ${leftPosition}`);
+    }
+    
+    // Also fix any toolbox popups with same logic
+    const popover = document.querySelector('#editorjs .ce-popover');
+    if (popover && toolbar) {
+      // Use same position as toolbar
+      popover.style.left = toolbar.style.left;
+      popover.style.right = 'auto';
+      // console.log(`Popover positioned to left: ${toolbar.style.left}`);
+    }
+  }
+  
+  // Apply positioning immediately
+  forceToolbarLeft();
+  
+  // Set up observer to catch dynamically created toolbars
+  const observer = new MutationObserver((mutations) => {
+    let shouldReposition = false;
+    
+    mutations.forEach((mutation) => {
+      if (mutation.type === 'childList') {
+        // Check if toolbar or popover was added
+        mutation.addedNodes.forEach((node) => {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            if (node.classList?.contains('ce-toolbar') ||
+                node.classList?.contains('ce-popover') ||
+                node.querySelector?.('.ce-toolbar') ||
+                node.querySelector?.('.ce-popover')) {
+              shouldReposition = true;
+            }
+          }
+        });
+      }
+      
+      // Check if toolbar position was modified
+      if (mutation.type === 'attributes' &&
+          mutation.target.classList?.contains('ce-toolbar')) {
+        shouldReposition = true;
+      }
+    });
+    
+    if (shouldReposition) {
+      // Use timeout to let Editor.js finish its positioning first
+      setTimeout(forceToolbarLeft, 50);
+    }
+  });
+  
+  // Start observing the editor container
+  const editorContainer = document.getElementById('editorjs');
+  if (editorContainer) {
+    observer.observe(editorContainer, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['style', 'class']
+    });
+    console.log('Toolbar positioning observer started');
+  }
+  
+  // Also patch on window resize
+  window.addEventListener('resize', () => {
+    setTimeout(forceToolbarLeft, 100);
+  });
+}
+
 // Load Editor.js scripts dynamically with better error handling
 function loadEditorJSScripts() {
   return new Promise((resolve, reject) => {
@@ -149,13 +260,20 @@ $(window).on('action:composer.loaded', async function() {
     }
 
     console.log('Tools available:', { HeaderTool, ListTool });
-
+    
     const editor = new EditorJS({
-      holder: 'editorjs',
-      placeholder: 'Let\'s write an awesome story!',
-      tools: {
-        header: HeaderTool,
-        list: ListTool
+    holder: 'editorjs',
+    placeholder: 'Let\'s write an awesome story!',
+    tools: {
+    header: HeaderTool,
+    list: ListTool
+    },
+      onReady: () => {
+        console.log('Editor.js is ready - hiding textarea and patching toolbar positioning');
+        textarea.hide();
+        
+        // Patch Editor.js toolbar positioning
+        patchToolbarPositioning();
       },
       onChange: async () => {
         try {
@@ -179,9 +297,12 @@ $(window).on('action:composer.loaded', async function() {
         }
       },
       onReady: () => {
-        console.log('Editor.js is ready - hiding textarea');
+        console.log('Editor.js is ready - hiding textarea and patching toolbar positioning');
         textarea.hide();
-      }
+        
+        // Patch Editor.js toolbar positioning
+        patchToolbarPositioning();
+      },
     });
 
     // Load existing content if available

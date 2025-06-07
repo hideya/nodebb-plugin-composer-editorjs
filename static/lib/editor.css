@@ -12,28 +12,28 @@
   background-color: white;
 }
 
+[component="composer"] .composer-container > .flex-column {
+  padding: 0 !important;
+}
+
+[component="composer"] .preview-container {
+  visibility: hidden !important;
+}
+
 /* Editor.js Container Styling */
 #editorjs {
   width: 100% !important;
   max-width: 100% !important;
-  /* box-sizing: border-box !important; */
 }
 
-/* #editorjs .ce-toolbar {
-  left: 200px !important;
-  right: auto !important;
-} */
+#editorjs .codex-editor__redactor {
+  margin-left: 60px;
+  margin-right: 60px;
+}
 
-/* #editorjs .ce-toolbar__plus {
-  left: 200px !important;
-  right: auto !important;
-} */
-
-
-/* Mobile responsive adjustments */
-@media (max-width: 768px) {
-  /* #editorjs {
-    padding: 0.5em !important;
-    font-size: 16px !important;
-  } */
+@media screen and (max-width:768px) {
+  #editorjs .codex-editor__redactor {
+    margin-left: 10px;
+    margin-right: 10px;
+  }
 }

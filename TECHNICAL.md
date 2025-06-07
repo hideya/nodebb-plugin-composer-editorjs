@@ -137,14 +137,7 @@ onChange: async () => { /* convert and store */ }
 form.on('submit', async () => { /* ensure conversion */ })
 ```
 
-### 2. Mobile Responsiveness
-**Problem**: NodeBB's default composer CSS can hide buttons on mobile.
-
-**Challenge**: Competing CSS specificity from themes and core.
-
-**Solution**: Aggressive CSS with `!important` declarations and multiple selectors.
-
-### 3. Block Type Conversion Complexity
+### 2. Block Type Conversion Complexity
 
 **Markdown → Editor.js**: Uses AST parsing via `remark-parse`
 ```javascript
@@ -161,38 +154,68 @@ switch (block.type) {
 }
 ```
 
-### 4. CDN Reliability & Version Management
+### 3. Toolbar Positioning Complexity
+
+**Problem**: Editor.js toolbar (plus button) appears on the right side instead of the standard left side when integrated into NodeBB's composer.
+
+**Root Cause**: NodeBB's CSS environment and composer layout conflicts with Editor.js's positioning calculations. Editor.js expects a certain layout structure to position its toolbar correctly, but NodeBB's composer provides a different CSS context.
+
+**Solution**: Hybrid CSS + JavaScript approach (implemented 2025-06-07):
+
+#### CSS Foundation (`editor.css`):
+- **CSS provides layout structure** - gives Editor.js the space for toolbar
+
+```css
+#editorjs .codex-editor__redactor {
+  margin-left: 60px;   /* Desktop: provide space for toolbar */
+  margin-right: 60px;
+}
+
+@media screen and (max-width:768px) {
+  #editorjs .codex-editor__redactor {
+    margin-left: 10px;  /* Mobile: conserve screen space */
+    margin-right: 10px;
+  }
+}
+```
+
+#### JavaScript Fine-tuning (`editor.js`):
+- **MutationObserver**: Monitors toolbar creation and positioning changes
+- **Dynamic positioning**: `offsetToBlockContent - 10px` to position toolbar exactly at composer's left edge + 10px margin
+- **Responsive logic**: Different positioning for mobile (0px) vs desktop (calculated)
+
+## Potential Issues & Maintenance
+
+### 1. CDN Reliability & Version Management
 
 **Problem**: CDN URLs can become outdated or unavailable, and `@latest` versions can introduce breaking changes.
 
 **Current Solution**: Pin to specific stable versions (implemented 2025-06-07):
 - `@editorjs/editorjs@2.30.8`
-- `@editorjs/header@2.8.8`
+- `@editorjs/header@2.8.8` 
 - `@editorjs/list@2.0.8`
 
 **Benefits**: Predictable behavior, no surprise breaking changes, easier debugging.
 
 **Maintenance**: Check for updates periodically, test compatibility, and update versions manually.
 
-## Potential Issues & Maintenance
-
-### 1. Editor.js Version Compatibility
+### 2. Editor.js Version Compatibility
 - **Current Versions** (pinned 2025-06-07): EditorJS 2.30.8, Header 2.8.8, List 2.0.8
 - **Monitor**: Editor.js and tool plugin updates on npm
 - **Test**: Block conversion after Editor.js updates
 - **Update Process**: Manual version updates after compatibility testing
 - **Consider**: Self-hosting scripts for even greater stability
 
-### 2. NodeBB Core Changes
+### 3. NodeBB Core Changes
 - **Watch**: Changes to composer architecture in NodeBB updates
 - **Test**: Plugin compatibility with new NodeBB versions
 - **Update**: Hook implementations if core APIs change
 
-### 3. Mobile/Theme Compatibility
+### 4. Mobile/Theme Compatibility
 - **Challenge**: Different themes may require CSS adjustments
 - **Solution**: Provide theme-specific CSS overrides or more targeted selectors
 
-### 4. Performance Considerations
+### 5. Performance Considerations
 - **CDN Loading**: Can add ~500ms to composer load time
 - **Bundle Size**: Editor.js + tools = ~200KB additional JavaScript
 - **Optimization**: Consider bundling frequently-used tools
