@@ -29,7 +29,11 @@
 
 /* Hide preview container as Editor.js provides real-time WYSIWYG editing */
 [component="composer"] .preview-container {
+  display: none !important;
+  background-color: yellow;
   visibility: hidden !important;
+  max-width: 0 !important;
+  width: 0 !important;
 }
 
 /* Editor.js Container Styling */

@@ -130,11 +130,11 @@ const scripts = [
 
 #### **JSON → Markdown (Client-Side)**
 - **Why Client**: Simple object mapping, no heavy libraries needed
-- **Why Not Server**: Real-time conversion needed during editing - every keystroke triggers onChange
-- **When**: Real-time during editing + form submission
-- **Frequency**: High (every user edit/keystroke)
+- **Why Not Server**: The default composer uses AJAX submission, not traditional forms - conversion needed before client-side validation
+- **When**: Submit button click (before validation runs)
+- **Frequency**: Low (once per post submission)
 - **Libraries**: None required (basic string concatenation)
-- **Data Flow**: Editor.js → Client conversion → textarea → Server
+- **Data Flow**: Editor.js → Submit button click → Client conversion → textarea → Default composer validation
 
 ```javascript
 // Simple conversion example
@@ -156,12 +156,13 @@ const tree = unified().use(markdown).parse(markdownText);
 ```
 
 #### **Key Architectural Insight**
-**"Server does the heavy lifting for MD→JSON because it has the tools, client does the simple JSON→MD because it can handle it easily AND needs to do it frequently during real-time editing."**
+**"Server does the heavy lifting for MD→JSON because it has the tools, client does the simple JSON→MD because it can handle it easily AND needs to do it at the exact right moment before validation."**
 
 This asymmetric approach is not just optimal but **necessary**:
-- ✅ **Real-time requirement**: JSON→MD must happen on every keystroke (client-side only)
-- ✅ **Frequency mismatch**: JSON→MD (high frequency) vs MD→JSON (low frequency)
-- ✅ **Performance**: Avoid server round-trips for real-time conversion
+- ✅ **Validation timing**: JSON→MD must happen before the default composer's client-side validation
+- ✅ **AJAX architecture**: The default composer doesn't use traditional forms - requires DOM event handling
+- ✅ **Frequency mismatch**: JSON→MD (once per submission) vs MD→JSON (once per edit session)
+- ✅ **Performance**: Single conversion at precisely the right moment
 - ✅ **Minimizes client dependencies**: Heavy parsing libraries only on server
 - ✅ **Leverages server capabilities**: AST parsing where libraries already exist
 - ✅ **Follows NodeBB's architecture**: Textarea contains final content for validation
@@ -171,19 +172,48 @@ This asymmetric approach is not just optimal but **necessary**:
 ## Tricky Implementation Details
 
 ### 1. Conversion Architecture (Resolved)
-**Previous Issue**: Originally had redundant JSON→MD conversion on both client and server.
+**Previous Issue**: Originally had redundant JSON→MD conversion on both client and server, plus inefficient real-time conversion.
 
-**Problem**: Server-side `filter:composer.format` was overwriting client-converted markdown, causing:
-- Redundant processing
-- Potential conversion inconsistencies  
-- Unnecessary complexity
+**Problems Solved**:
+- **Server-side redundancy**: `filter:composer.format` was overwriting client-converted markdown
+- **Real-time inefficiency**: Converting JSON→MD on every keystroke was unnecessary
+- **Form vs AJAX mismatch**: Originally assumed traditional form submission, but NodeBB uses AJAX
+- **Validation timing**: Conversion needed to happen before NodeBB's client-side validation
 
-**Solution**: Removed server-side JSON→MD conversion entirely. Client-side conversion handles this efficiently by putting markdown directly in textarea, following standard composer patterns.
+**Final Solution**: Single client-side conversion triggered by submit button click, running before validation:
+```javascript
+$('.composer-submit').on('click.editorjs', async function(e) {
+  const editorData = await editor.save();
+  const markdown = convertEditorJsToMarkdown(editorData);
+  textarea.val(markdown); // Ready for NodeBB validation
+});
+```
 
-### 2. Event Timing Issues
-**Problem**: NodeBB's composer events fire at different times than Editor.js lifecycle.
+This approach:
+- ✅ **Eliminates redundancy**: Single conversion point
+- ✅ **Optimal timing**: Before validation, after editing complete
+- ✅ **Performance**: No unnecessary real-time processing
+- ✅ **Reliability**: Direct DOM event handling, no complex event timing dependencies
 
-**Solution**: Multiple sync points with error handling:
+### 2. NodeBB AJAX Architecture Discovery
+**Challenge**: The default composer doesn't use traditional HTML forms for submission.
+
+**Discovery Process**:
+1. **Initial assumption**: Traditional form with `<form>` element and submit event
+2. **Reality check**: `textarea.closest('form')` returned empty - no form element found
+3. **Investigation**: The default composer uses AJAX-based submission with custom event system
+4. **Solution**: Hook into submit button click events directly
+
+**Key Findings**:
+- The default composer has no traditional `<form>` wrapper
+- Submit buttons use class `.composer-submit` with `data-action="post"`
+- Validation happens client-side before AJAX submission
+- Content must be in textarea before validation runs
+
+### 3. Event Timing Issues (Resolved)
+**Previous Problem**: NodeBB's composer events fire at different times than Editor.js lifecycle.
+
+**Original Approach**: Multiple sync points with error handling:
 ```javascript
 // Real-time sync
 onChange: async () => { /* convert and store */ }
@@ -192,7 +222,16 @@ onChange: async () => { /* convert and store */ }
 form.on('submit', async () => { /* ensure conversion */ })
 ```
 
-### 2. Block Type Conversion Complexity
+**Final Solution**: Single, precisely-timed conversion:
+```javascript
+// Convert only when submit button clicked, before validation
+$('.composer-submit').on('click.editorjs', async function(e) {
+  const markdown = convertEditorJsToMarkdown(await editor.save());
+  textarea.val(markdown);
+});
+```
+
+### 4. Block Type Conversion Complexity
 
 **Markdown → Editor.js**: Uses AST parsing via `remark-parse`
 ```javascript

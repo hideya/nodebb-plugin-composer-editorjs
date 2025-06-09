@@ -17,7 +17,7 @@
  * This handles the simple JSON→MD conversion because:
  * - Simple object mapping, no heavy libraries needed
  * - Client needs to populate textarea for NodeBB validation/storage
- * - Real-time conversion during editing provides immediate sync
+ * - Conversion happens before form submission (not real-time for performance)
  * 
  * @param {Object} data - Editor.js save data containing blocks array
  * @returns {string} Markdown formatted content
@@ -292,7 +292,10 @@ $(window).on('action:composer.loaded', async function() {
 
   // Find the composer textarea
   const textarea = $('[component="composer"] textarea');
-  console.log('Found textarea:', textarea.length);
+  console.log('📍 Found textarea:', textarea.length);
+  console.log('📍 Textarea element:', textarea[0]);
+  console.log('📍 Initial textarea content:', textarea.val());
+  console.log('📍 Initial textarea content length:', textarea.val().length);
   if (!textarea.length) return;
 
   // Create Editor.js container with full width and responsive design
@@ -343,7 +346,7 @@ $(window).on('action:composer.loaded', async function() {
         try {
           const data = await editor.save();
           
-          // Store Editor.js data in hidden field
+          // Store Editor.js data in hidden field for re-editing
           let hiddenInput = $('input[name="editorjsData"]');
           if (!hiddenInput.length) {
             hiddenInput = $('<input type="hidden" name="editorjsData">');
@@ -351,11 +354,10 @@ $(window).on('action:composer.loaded', async function() {
           }
           hiddenInput.val(JSON.stringify(data));
           
-          // Convert to markdown and put in original textarea for validation
-          const markdown = convertEditorJsToMarkdown(data);
-          textarea.val(markdown);
+          // Note: No real-time JSON→MD conversion here for performance
+          // Conversion happens only before form submission/validation
           
-          console.log('Saved Editor.js data and converted to markdown:', markdown);
+          console.log('Saved Editor.js data:', data);
         } catch (error) {
           console.error('Editor.js save error:', error);
         }
@@ -379,20 +381,25 @@ $(window).on('action:composer.loaded', async function() {
       }
     }
 
-    // Ensure content is converted on form submission
-    const form = textarea.closest('form');
-    if (form.length) {
-      form.on('submit', async function(e) {
-        try {
-          const data = await editor.save();
-          const markdown = convertEditorJsToMarkdown(data);
-          textarea.val(markdown);
-          console.log('Form submit: Updated textarea with markdown:', markdown);
-        } catch (error) {
-          console.error('Form submit conversion error:', error);
-        }
-      });
-    }
+    // Hook into NodeBB's composer submission system
+    console.log('🔧 Setting up NodeBB composer event handlers...');
+    
+    // Convert Editor.js content to markdown when submit button is clicked
+    // This runs BEFORE NodeBB's validation, ensuring textarea is populated
+    $('.composer-submit').off('click.editorjs').on('click.editorjs', async function(e) {
+      console.log('🎯 Submit button clicked - converting Editor.js to markdown');
+      
+      try {
+        const editorData = await editor.save();
+        const markdown = convertEditorJsToMarkdown(editorData);
+        textarea.val(markdown);
+        console.log('✅ Pre-populated textarea with markdown:', markdown.length, 'characters');
+      } catch (error) {
+        console.error('❌ Submit button conversion error:', error);
+      }
+    });
+    
+    console.log('✅ NodeBB composer event handlers attached');
   } catch (error) {
     console.error('Failed to initialize Editor.js:', error);
     // Remove container and show original textarea
