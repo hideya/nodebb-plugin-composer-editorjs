@@ -5,8 +5,9 @@ A NodeBB plugin that replaces the default markdown composer with a modern WYSIWY
 ## Features
 
 - **Block-style editing**: Modern WYSIWYG editor with block-based content structure
-- **Seamless integration**: Works **alongside** NodeBB's default composer plugin
-- **Markdown compatibility**: Automatically converts between Editor.js JSON and markdown
+- **Dual Composer System**: Works alongside nodebb-plugin-composer-default rather than replacing it completely,
+   ensuring compatibility with NodeBB's core systems
+- **Markdown compatibility**: Automatically converts between Editor.js JSON and markdown for seamless integration
 
 ## Supported Block Types
 
