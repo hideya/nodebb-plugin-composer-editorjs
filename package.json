@@ -24,8 +24,6 @@
     "npm": ">=6"
   },
   "dependencies": {
-    "remark-parse": "^10.0.1",
-    "unified": "^10.1.2"
   },
   "nbbpm": {
     "compatibility": "^3.0.0"

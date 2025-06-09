@@ -3,12 +3,12 @@
  * 
  * This file handles the client-side integration of Editor.js with NodeBB's composer.
  * 
- * ASYMMETRIC CONVERSION ARCHITECTURE:
- * - JSON→MD: Client-side (this file) - simple object mapping, lightweight
- * - MD→JSON: Server-side (md-to-json.js) - complex AST parsing, requires libraries
+ * SYMMETRIC CONVERSION ARCHITECTURE:
+ * - JSON→MD: Client-side (simple object mapping, lightweight)
+ * - MD→JSON: Client-side (unified/remark-parse, cached by browser)
  * 
- * KEY PRINCIPLE: "Server does the heavy lifting for MD→JSON because it has the tools, 
- * client does the simple JSON→MD because it can handle it easily."
+ * KEY PRINCIPLE: "Both conversions happen client-side for symmetric architecture, 
+ * better caching, reduced server processing, and potential offline capability."
  */
 
 /**
@@ -87,6 +87,113 @@ function convertListToMarkdown(listData, depth = 0) {
   });
   
   return result;
+}
+
+/**
+ * Convert markdown content to Editor.js JSON format (client-side conversion).
+ * 
+ * This handles the MD→JSON conversion using browser-loaded unified/remark-parse libraries.
+ * Now that both conversions happen client-side, we have a symmetric architecture.
+ * 
+ * @param {string} markdownText - Raw markdown content from NodeBB storage
+ * @returns {Object} Editor.js compatible JSON structure
+ */
+function convertMarkdownToEditorJs(markdownText) {
+  if (!markdownText || typeof unified === 'undefined' || typeof remarkParse === 'undefined') {
+    console.warn('Markdown parsing libraries not available or empty content');
+    return {
+      time: Date.now(),
+      version: '2.30.8',
+      blocks: []
+    };
+  }
+
+  try {
+    // Parse markdown into Abstract Syntax Tree (AST)
+    const tree = unified().use(remarkParse).parse(markdownText);
+    const blocks = [];
+
+    // Convert each AST node to Editor.js block format
+    for (const node of tree.children) {
+      switch (node.type) {
+        case 'heading':
+          blocks.push({
+            type: 'header',
+            data: {
+              text: node.children.map(child => child.value || '').join(''),
+              level: node.depth
+            }
+          });
+          break;
+        case 'paragraph':
+          blocks.push({
+            type: 'paragraph',
+            data: {
+              text: node.children.map(child => child.value || '').join('')
+            }
+          });
+          break;
+        case 'list':
+          blocks.push({
+            type: 'list',
+            data: {
+              style: node.ordered ? 'ordered' : 'unordered',
+              items: node.children.map(li => ({
+                content: li.children.map(p => p.children.map(c => c.value || '').join('')).join(''),
+                meta: {},
+                items: [] // List 2.0 format - no nested items from markdown for now
+              }))
+            }
+          });
+          break;
+        case 'code':
+          blocks.push({
+            type: 'code',
+            data: {
+              code: node.value
+            }
+          });
+          break;
+        case 'blockquote':
+          blocks.push({
+            type: 'quote',
+            data: {
+              text: node.children.map(p => p.children.map(c => c.value || '').join('')).join('\n')
+            }
+          });
+          break;
+        case 'thematicBreak':
+          blocks.push({
+            type: 'delimiter',
+            data: {}
+          });
+          break;
+        default:
+          // Handle unknown markdown elements gracefully
+          blocks.push({
+            type: 'paragraph',
+            data: {
+              text: `[unsupported block type: ${node.type}]`
+            }
+          });
+          break;
+      }
+    }
+
+    // Return Editor.js compatible structure
+    return {
+      time: Date.now(),
+      version: '2.30.8',
+      blocks
+    };
+  } catch (error) {
+    console.error('Error converting markdown to Editor.js format:', error);
+    return {
+      time: Date.now(),
+      version: '2.30.8',
+      blocks: []
+    };
+  }
 }
 
 /**
@@ -211,28 +318,32 @@ function patchToolbarPositioning() {
 }
 
 /**
- * Load Editor.js scripts dynamically from CDN with error handling.
+ * Load Editor.js scripts and markdown parsing libraries dynamically from CDN.
  * 
- * Uses pinned versions for stability (updated 2025-06-07):
+ * Uses pinned versions for stability (updated 2025-06-09):
  * - @editorjs/editorjs@2.30.8 (core)
  * - @editorjs/header@2.8.8 (header tool)
  * - @editorjs/list@2.0.8 (list tool)
+ * - unified@11.0.5 (markdown processing core)
+ * - remark-parse@11.0.0 (markdown parser)
  * 
  * @returns {Promise} Resolves when all scripts are loaded successfully
  */
 function loadEditorJSScripts() {
   return new Promise((resolve, reject) => {
-    if (typeof EditorJS !== 'undefined') {
+    if (typeof EditorJS !== 'undefined' && typeof unified !== 'undefined') {
       resolve();
       return;
     }
 
-    // Load Editor.js core and essential tools
-    // Version pinned on 2025-06-07 for stability (was using @latest)
+    // Load Editor.js core, tools, and markdown parsing libraries
+    // Version pinned on 2025-06-09 for stability
     const scripts = [
       'https://cdn.jsdelivr.net/npm/@editorjs/editorjs@2.30.8',
       'https://cdn.jsdelivr.net/npm/@editorjs/header@2.8.8',
       'https://cdn.jsdelivr.net/npm/@editorjs/list@2.0.8',
+      'https://cdn.jsdelivr.net/npm/unified@11.0.5/index.min.js',
+      'https://cdn.jsdelivr.net/npm/remark-parse@11.0.0/index.min.js'
     ];
 
     let loadedCount = 0;
@@ -341,43 +452,21 @@ $(window).on('action:composer.loaded', async function() {
         
         // Patch Editor.js toolbar positioning
         patchToolbarPositioning();
-      },
-      onChange: async () => {
-        try {
-          const data = await editor.save();
-          
-          // Store Editor.js data in hidden field for re-editing
-          let hiddenInput = $('input[name="editorjsData"]');
-          if (!hiddenInput.length) {
-            hiddenInput = $('<input type="hidden" name="editorjsData">');
-            textarea.after(hiddenInput);
-          }
-          hiddenInput.val(JSON.stringify(data));
-          
-          // Note: No real-time JSON→MD conversion here for performance
-          // Conversion happens only before form submission/validation
-          
-          console.log('Saved Editor.js data:', data);
-        } catch (error) {
-          console.error('Editor.js save error:', error);
-        }
-      },
-      onReady: () => {
-        console.log('Editor.js is ready - hiding textarea and patching toolbar positioning');
-        textarea.hide();
-        
-        // Patch Editor.js toolbar positioning
-        patchToolbarPositioning();
-      },
+      }
     });
 
-    // Load existing content if available
-    const existingData = $('input[name="editorjsData"]').val();
-    if (existingData) {
+    // Load existing content if available (now converted client-side)
+    const existingContent = textarea.val();
+    if (existingContent && existingContent.trim()) {
       try {
-        editor.render(JSON.parse(existingData));
+        console.log('📄 Converting existing markdown content to Editor.js format');
+        const editorData = convertMarkdownToEditorJs(existingContent);
+        console.log('✅ Converted markdown to Editor.js:', editorData.blocks.length, 'blocks');
+        
+        await editor.render(editorData);
+        console.log('✅ Rendered existing content in Editor.js');
       } catch (error) {
-        console.error('Editor.js render error:', error);
+        console.error('❌ Error loading existing content:', error);
       }
     }
 

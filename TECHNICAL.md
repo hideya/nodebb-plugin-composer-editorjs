@@ -130,7 +130,6 @@ const scripts = [
 
 #### **JSON → Markdown (Client-Side)**
 - **Why Client**: Simple object mapping, no heavy libraries needed
-- **Why Not Server**: The default composer uses AJAX submission, not traditional forms - conversion needed before client-side validation
 - **When**: Submit button click (before validation runs)
 - **Frequency**: Low (once per post submission)
 - **Libraries**: None required (basic string concatenation)
@@ -141,59 +140,63 @@ const scripts = [
 case 'header': return `${'#'.repeat(data.level)} ${data.text}\n`;
 ```
 
-#### **Markdown → JSON (Server-Side)**
-- **Why Server**: Complex AST parsing requires specialized libraries
-- **Why Not Client**: Would need heavy parsing libraries + only needed once per edit session
+#### **Markdown → JSON (Client-Side)**
+- **Why Client**: Symmetric architecture, better caching, reduced server processing
 - **When**: Loading existing content for editing
 - **Frequency**: Low (once per edit session)
-- **Libraries**: `unified` + `remark-parse` for proper markdown parsing
-- **Data Flow**: Server storage → Server conversion → Client rendering
+- **Libraries**: `unified` + `remark-parse` loaded from CDN (cached by browser)
+- **Data Flow**: NodeBB storage → Client conversion → Editor.js rendering
 
 ```javascript
-// Complex parsing required
-const tree = unified().use(markdown).parse(markdownText);
-// ... AST traversal and Editor.js block building
+// Client-side AST parsing
+const tree = unified().use(remarkParse).parse(markdownText);
+// Convert AST nodes to Editor.js blocks
 ```
 
 #### **Key Architectural Insight**
-**"Server does the heavy lifting for MD→JSON because it has the tools, client does the simple JSON→MD because it can handle it easily AND needs to do it at the exact right moment before validation."**
+**"Both conversions happen client-side for symmetric architecture, better browser caching, reduced server processing, and potential offline capability."**
 
-This asymmetric approach is not just optimal but **necessary**:
-- ✅ **Validation timing**: JSON→MD must happen before the default composer's client-side validation
-- ✅ **AJAX architecture**: The default composer doesn't use traditional forms - requires DOM event handling
-- ✅ **Frequency mismatch**: JSON→MD (once per submission) vs MD→JSON (once per edit session)
-- ✅ **Performance**: Single conversion at precisely the right moment
-- ✅ **Minimizes client dependencies**: Heavy parsing libraries only on server
-- ✅ **Leverages server capabilities**: AST parsing where libraries already exist
-- ✅ **Follows NodeBB's architecture**: Textarea contains final content for validation
+This symmetric approach provides multiple benefits:
+- ✅ **Architectural symmetry**: Both conversions in same environment (client-side)
+- ✅ **Better caching**: Libraries cached by ServiceWorker/browser across sessions
+- ✅ **Reduced server load**: No markdown parsing processing on server
+- ✅ **Simpler server code**: Just storage and retrieval, no conversion logic
+- ✅ **Offline potential**: Could work without server dependency for conversions
+- ✅ **Modern architecture**: Leverages browser capabilities and CDN caching
 
 **Why Conversion is Mandatory**: NodeBB's entire ecosystem (storage, validation, rendering, APIs, other plugins) expects markdown format. The plugin must bridge Editor.js's JSON world with NodeBB's markdown world.
 
 ## Tricky Implementation Details
 
-### 1. Conversion Architecture (Resolved)
-**Previous Issue**: Originally had redundant JSON→MD conversion on both client and server, plus inefficient real-time conversion.
+### 1. Conversion Architecture Evolution
+**Journey**: From redundant server-side processing to optimal symmetric client-side architecture.
 
 **Problems Solved**:
-- **Server-side redundancy**: `filter:composer.format` was overwriting client-converted markdown
+- **Server-side redundancy**: Originally `filter:composer.format` was overwriting client-converted markdown
 - **Real-time inefficiency**: Converting JSON→MD on every keystroke was unnecessary
-- **Form vs AJAX mismatch**: Originally assumed traditional form submission, but NodeBB uses AJAX
-- **Validation timing**: Conversion needed to happen before NodeBB's client-side validation
+- **Asymmetric complexity**: Having conversions split between client and server environments
+- **Server processing load**: Markdown parsing was consuming server resources
+- **Bundle size concerns**: Overcome with modern browser caching capabilities
 
-**Final Solution**: Single client-side conversion triggered by submit button click, running before validation:
+**Final Solution**: Symmetric client-side architecture with CDN-loaded libraries:
 ```javascript
+// Both conversions now client-side
+function convertEditorJsToMarkdown(data) { /* Simple object mapping */ }
+function convertMarkdownToEditorJs(text) { /* unified + remark-parse */ }
+
+// Submit handler populates textarea before validation
 $('.composer-submit').on('click.editorjs', async function(e) {
-  const editorData = await editor.save();
-  const markdown = convertEditorJsToMarkdown(editorData);
-  textarea.val(markdown); // Ready for NodeBB validation
+  const markdown = convertEditorJsToMarkdown(await editor.save());
+  textarea.val(markdown);
 });
 ```
 
-This approach:
-- ✅ **Eliminates redundancy**: Single conversion point
-- ✅ **Optimal timing**: Before validation, after editing complete
-- ✅ **Performance**: No unnecessary real-time processing
-- ✅ **Reliability**: Direct DOM event handling, no complex event timing dependencies
+This evolution provides:
+- ✅ **Architectural symmetry**: Both conversions in same environment
+- ✅ **Better performance**: Libraries cached by browser across sessions
+- ✅ **Reduced server load**: No markdown parsing on server
+- ✅ **Simpler codebase**: No server-side conversion logic
+- ✅ **Modern approach**: Leverages CDN caching and browser capabilities
 
 ### 2. NodeBB AJAX Architecture Discovery
 **Challenge**: The default composer doesn't use traditional HTML forms for submission.

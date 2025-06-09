@@ -1,8 +1,6 @@
 {
   "library": "./index.js",
-  "hooks": [
-    { "hook": "filter:composer.get", "method": "get" }
-  ],
+  "hooks": [],
   "staticDirs": {
     "static": "./static"
   },
