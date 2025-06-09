@@ -1,13 +1,24 @@
+/**
+ * NodeBB Plugin: Composer Editor.js - Styling
+ * 
+ * This CSS handles the integration styling for Editor.js within NodeBB's composer.
+ * Key challenges addressed:
+ * 1. Toolbar positioning (left-side placement)
+ * 2. Responsive design for mobile devices
+ * 3. Integration with NodeBB's existing composer layout
+ */
 
+/* Composer container adjustments for Editor.js integration */
 [component="composer"] {
   padding: 24px !important;
 }
 
-/* Hide markdown formatting toolbar when Editor.js is active */
+/* Hide NodeBB's default markdown formatting toolbar when Editor.js is active */
 [component="composer"] .formatting-bar {
   display: none !important;
 }
 
+/* Composer layout adjustments for cleaner Editor.js integration */
 [component="composer"] .write-preview-container {
   background-color: white;
 }
@@ -16,6 +27,7 @@
   padding: 0 !important;
 }
 
+/* Hide preview container as Editor.js provides real-time WYSIWYG editing */
 [component="composer"] .preview-container {
   visibility: hidden !important;
 }
@@ -26,14 +38,23 @@
   max-width: 100% !important;
 }
 
+/*
+ * TOOLBAR POSITIONING SOLUTION:
+ * 
+ * PROBLEM: Editor.js toolbar appears on right side due to CSS conflicts
+ * SOLUTION: Provide left margin space for toolbar positioning
+ * 
+ * This CSS creates the layout foundation, JavaScript handles exact positioning
+ */
 #editorjs .codex-editor__redactor {
-  margin-left: 60px;
-  margin-right: 60px;
+  margin-left: 60px;   /* Desktop: space for left-side toolbar */
+  margin-right: 60px;  /* Symmetric spacing */
 }
 
+/* Mobile responsive adjustments */
 @media screen and (max-width:768px) {
   #editorjs .codex-editor__redactor {
-    margin-left: 10px;
+    margin-left: 10px;   /* Mobile: conserve screen space */
     margin-right: 10px;
   }
 }

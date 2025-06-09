@@ -119,13 +119,68 @@ const scripts = [
 
 **Challenge**: NodeBB validates content length using the textarea value.
 
-**Solution**: Dual-write strategy ensures both formats are available:
-- Editor.js JSON in hidden input (for editing)
-- Converted markdown in textarea (for validation)
+**Solution**: Single-write strategy ensures proper validation:
+- Editor.js JSON converted to markdown on client-side
+- Converted markdown in textarea (for validation and storage)
+- JSON stored only temporarily for re-editing via `filter:composer.get`
+
+### 5. Asymmetric Conversion Architecture
+
+**Core Design Decision**: Why conversions happen in different places for different directions.
+
+#### **JSON → Markdown (Client-Side)**
+- **Why Client**: Simple object mapping, no heavy libraries needed
+- **Why Not Server**: Real-time conversion needed during editing - every keystroke triggers onChange
+- **When**: Real-time during editing + form submission
+- **Frequency**: High (every user edit/keystroke)
+- **Libraries**: None required (basic string concatenation)
+- **Data Flow**: Editor.js → Client conversion → textarea → Server
+
+```javascript
+// Simple conversion example
+case 'header': return `${'#'.repeat(data.level)} ${data.text}\n`;
+```
+
+#### **Markdown → JSON (Server-Side)**
+- **Why Server**: Complex AST parsing requires specialized libraries
+- **Why Not Client**: Would need heavy parsing libraries + only needed once per edit session
+- **When**: Loading existing content for editing
+- **Frequency**: Low (once per edit session)
+- **Libraries**: `unified` + `remark-parse` for proper markdown parsing
+- **Data Flow**: Server storage → Server conversion → Client rendering
+
+```javascript
+// Complex parsing required
+const tree = unified().use(markdown).parse(markdownText);
+// ... AST traversal and Editor.js block building
+```
+
+#### **Key Architectural Insight**
+**"Server does the heavy lifting for MD→JSON because it has the tools, client does the simple JSON→MD because it can handle it easily AND needs to do it frequently during real-time editing."**
+
+This asymmetric approach is not just optimal but **necessary**:
+- ✅ **Real-time requirement**: JSON→MD must happen on every keystroke (client-side only)
+- ✅ **Frequency mismatch**: JSON→MD (high frequency) vs MD→JSON (low frequency)
+- ✅ **Performance**: Avoid server round-trips for real-time conversion
+- ✅ **Minimizes client dependencies**: Heavy parsing libraries only on server
+- ✅ **Leverages server capabilities**: AST parsing where libraries already exist
+- ✅ **Follows NodeBB's architecture**: Textarea contains final content for validation
+
+**Why Conversion is Mandatory**: NodeBB's entire ecosystem (storage, validation, rendering, APIs, other plugins) expects markdown format. The plugin must bridge Editor.js's JSON world with NodeBB's markdown world.
 
 ## Tricky Implementation Details
 
-### 1. Event Timing Issues
+### 1. Conversion Architecture (Resolved)
+**Previous Issue**: Originally had redundant JSON→MD conversion on both client and server.
+
+**Problem**: Server-side `filter:composer.format` was overwriting client-converted markdown, causing:
+- Redundant processing
+- Potential conversion inconsistencies  
+- Unnecessary complexity
+
+**Solution**: Removed server-side JSON→MD conversion entirely. Client-side conversion handles this efficiently by putting markdown directly in textarea, following standard composer patterns.
+
+### 2. Event Timing Issues
 **Problem**: NodeBB's composer events fire at different times than Editor.js lifecycle.
 
 **Solution**: Multiple sync points with error handling:

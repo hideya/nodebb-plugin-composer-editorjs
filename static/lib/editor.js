@@ -1,9 +1,34 @@
-// Convert Editor.js data to markdown
+/**
+ * NodeBB Plugin: Composer Editor.js - Client-side Integration
+ * 
+ * This file handles the client-side integration of Editor.js with NodeBB's composer.
+ * 
+ * ASYMMETRIC CONVERSION ARCHITECTURE:
+ * - JSON→MD: Client-side (this file) - simple object mapping, lightweight
+ * - MD→JSON: Server-side (md-to-json.js) - complex AST parsing, requires libraries
+ * 
+ * KEY PRINCIPLE: "Server does the heavy lifting for MD→JSON because it has the tools, 
+ * client does the simple JSON→MD because it can handle it easily."
+ */
+
+/**
+ * Convert Editor.js JSON data to markdown (client-side conversion).
+ * 
+ * This handles the simple JSON→MD conversion because:
+ * - Simple object mapping, no heavy libraries needed
+ * - Client needs to populate textarea for NodeBB validation/storage
+ * - Real-time conversion during editing provides immediate sync
+ * 
+ * @param {Object} data - Editor.js save data containing blocks array
+ * @returns {string} Markdown formatted content
+ */
 function convertEditorJsToMarkdown(data) {
   if (!data || !Array.isArray(data.blocks)) return '';
 
   return data.blocks.map(block => {
     const { type, data } = block;
+    
+    // Convert each Editor.js block to its markdown equivalent
     switch (type) {
       case 'paragraph':
         return `${data.text}\n`;
@@ -12,12 +37,20 @@ function convertEditorJsToMarkdown(data) {
       case 'list':
         return convertListToMarkdown(data, 0);
       default:
+        // Fallback for unknown block types
         return `${data.text || ''}\n`;
     }
   }).join('\n');
 }
 
-// Helper function to convert List 2.0 format to markdown (client-side)
+/**
+ * Helper function to convert List 2.0 format to markdown (client-side).
+ * Handles nested lists and different list styles (ordered, unordered, checklist).
+ * 
+ * @param {Object} listData - Editor.js list block data
+ * @param {number} depth - Nesting level for indentation
+ * @returns {string} Markdown formatted list
+ */
 function convertListToMarkdown(listData, depth = 0) {
   if (!listData.items || !Array.isArray(listData.items)) return '';
   
@@ -56,7 +89,17 @@ function convertListToMarkdown(listData, depth = 0) {
   return result;
 }
 
-// Patch Editor.js toolbar positioning
+/**
+ * Patch Editor.js toolbar positioning to appear on the left side.
+ * 
+ * PROBLEM: Editor.js toolbar appears on right side in NodeBB's composer context
+ * due to CSS conflicts between Editor.js positioning and NodeBB's layout.
+ * 
+ * SOLUTION: Hybrid CSS + JavaScript approach:
+ * - CSS provides layout structure (margin-left for toolbar space)
+ * - JavaScript calculates exact positioning relative to content area
+ * - MutationObserver handles dynamic toolbar creation/changes
+ */
 function patchToolbarPositioning() {
   console.log('Patching Editor.js toolbar positioning...');
   
@@ -167,7 +210,16 @@ function patchToolbarPositioning() {
   });
 }
 
-// Load Editor.js scripts dynamically with better error handling
+/**
+ * Load Editor.js scripts dynamically from CDN with error handling.
+ * 
+ * Uses pinned versions for stability (updated 2025-06-07):
+ * - @editorjs/editorjs@2.30.8 (core)
+ * - @editorjs/header@2.8.8 (header tool)
+ * - @editorjs/list@2.0.8 (list tool)
+ * 
+ * @returns {Promise} Resolves when all scripts are loaded successfully
+ */
 function loadEditorJSScripts() {
   return new Promise((resolve, reject) => {
     if (typeof EditorJS !== 'undefined') {
@@ -209,6 +261,18 @@ function loadEditorJSScripts() {
   });
 }
 
+/**
+ * Main initialization function - integrates Editor.js with NodeBB composer.
+ * 
+ * ARCHITECTURE OVERVIEW:
+ * 1. Load Editor.js scripts dynamically
+ * 2. Replace textarea with Editor.js interface
+ * 3. Set up bidirectional data synchronization:
+ *    - Editor.js changes → JSON → Markdown → textarea (for NodeBB)
+ *    - Existing content: Server MD → JSON → Editor.js rendering
+ * 4. Apply toolbar positioning fixes
+ * 5. Handle form submission with final conversion
+ */
 $(window).on('action:composer.loaded', async function() {
   console.log('Editor.js plugin: Composer loaded event triggered');
   

@@ -3,10 +3,25 @@
 const unified = require('unified');
 const markdown = require('remark-parse');
 
+/**
+ * Convert markdown content to Editor.js JSON format (server-side conversion).
+ * 
+ * This handles the complex MD→JSON conversion using AST parsing because:
+ * - Markdown parsing requires specialized libraries (unified + remark-parse)
+ * - Server already has these dependencies available
+ * - Client would need heavy libraries for proper AST parsing
+ * 
+ * Used by filter:composer.get hook when loading existing content for editing.
+ * 
+ * @param {string} markdownText - Raw markdown content from NodeBB storage
+ * @returns {Object} Editor.js compatible JSON structure
+ */
 module.exports = function markdownToJson(markdownText) {
+  // Parse markdown into Abstract Syntax Tree (AST)
   const tree = unified().use(markdown).parse(markdownText);
   const blocks = [];
 
+  // Convert each AST node to Editor.js block format
   for (const node of tree.children) {
     switch (node.type) {
       case 'heading':
@@ -62,6 +77,7 @@ module.exports = function markdownToJson(markdownText) {
         });
         break;
       default:
+        // Handle unknown markdown elements gracefully
         blocks.push({
           type: 'paragraph',
           data: {
@@ -72,6 +88,7 @@ module.exports = function markdownToJson(markdownText) {
     }
   }
 
+  // Return Editor.js compatible structure
   return {
     time: Date.now(),
     version: '2.29.0',
